@@ -149,13 +149,13 @@ const recorder = class {
     */
     _addInstanceEventHandlers(instance) {
         instance.ffmpeg.on(`end`, () => {
-            logger.info(`FFMpeg instance ${instance.name} has finished`, {identifier: `recorder`, meta: {options: instance.options}});
+            logger.info(`FFMpeg instance ${instance.name} has finished`, {identifier: `recorder event`, meta: {options: instance.options}});
         });
         instance.ffmpeg.on(`start`, (commandLine) => {
-            logger.info(`FFMpeg instance ${instance.name} has started`, {identifier: `recorder`, meta: {options: instance.options, commandLine: commandLine}});
+            logger.info(`FFMpeg instance ${instance.name} has started`, {identifier: `recorder event`, meta: {options: instance.options, commandLine: commandLine}});
         });
         instance.ffmpeg.on(`error`, function(err, stdout, stderr) {
-            logger.error(`FFMpeg instance ${instance.name} reported an error: ${err}`, {identifier: `recorder`, meta: {options: instance.options, stdout: stdout, stderr: stderr, error: err}});
+            logger.error(`FFMpeg instance ${instance.name} reported an error: ${err}`, {identifier: `recorder event`, meta: {options: instance.options, stdout: stdout, stderr: stderr, error: err}});
         });
     }
 }
