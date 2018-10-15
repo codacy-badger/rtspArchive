@@ -4,6 +4,9 @@ const ffmpeg = require(`fluent-ffmpeg`);
 const config = require(`../config`);
 const logger = require(`../logger`);
 
+/**
+    Allows to control multiple FFMPEG instances. Each instance can be added by using the recorder.addInstance function with specified parameters. The added instances can be started with the recorder.run function and stopped with the recorder.stop function.
+**/
 const recorder = class {
     constructor() {
         /*
