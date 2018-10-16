@@ -4,6 +4,8 @@
     Provides helper functions used across the whole project
 **/
 
+const fs = require(`fs`);
+const {promisify} = require(`util`);
 
 module.exports = {
     /**
@@ -21,6 +23,13 @@ module.exports = {
             });
         }
         doRecurse();
+    },
+    /**
+        Promisified fs functions
+    **/
+    fsAsync: {
+        stat: promisify(fs.stat),
+        unlink: promisify(fs.unlink)
     },
     /**
         Allows to use await in the forEach callback

@@ -7,14 +7,8 @@
 const config = require(`../config`);
 const logger = require(`../logger`);
 const h = require(`../helpers`);
-const fs = require(`fs`);
 const moment = require(`moment-timezone`);
-const {promisify} = require(`util`);
 
-const fsAsync = {
-    stat: promisify(fs.stat),
-    unlink: promisify(fs.unlink)
-}
 
 const fileRotator = class {
     constructor() {
@@ -49,7 +43,7 @@ const fileRotator = class {
     */
     async removeFile(path){
         try{
-            await fsAsync.unlink(path);
+            await h.fsAsync.unlink(path);
             this._fileList = this._fileList.filter(file => file.path !== path);
         } catch (error){
             logger.error(`Error while removing file ${path}: ${error}`, {identifier: `fileRotator removeFile`, meta: error});
@@ -72,7 +66,7 @@ const fileRotator = class {
     }
     async _getFileStats(path) {
         try{
-            return await fsAsync.stat(path);
+            return await h.fsAsync.stat(path);
         } catch(error){
             return false;
         }
