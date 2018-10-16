@@ -1,7 +1,7 @@
 `use strict`;
 
 /**
-    Allows to control multiple FFMPEG instances. Each instance can be added by using the recorder.addInstance function with specified parameters. The added instances can be started with the recorder.run function and stopped with the recorder.stop function.
+    Allows to control multiple FFMPEG instances. Each instance can be added by using the recorder.addInstance function with specified parameters. The added instances can be started with the recorder.run function. Each instance will be removed automatically upon error or when it finishes recording.
 **/
 
 const ffmpeg = require(`fluent-ffmpeg`);
@@ -23,26 +23,29 @@ const recorder = class {
     }
     /*
         Adds a new ffmpeg instance (doesn't start it). The instance name has to be unique
-        endCallback: a function that will be called when ffmpeg finishes recording (e.g. after exceeding streamMeta.fileDuration)
-        beginCallback: a function that will be called when ffmpeg starts recording
+        destination: a full output path
+        endCallback(streamMeta, destination): a function that will be called when ffmpeg finishes recording (e.g. after exceeding streamMeta.fileDuration)
+        beginCallback(streamMeta, destination): a function that will be called when ffmpeg starts recording
         streamMeta: {
             name: String,
             source: String,
             destination: String,
             format: String,
             fileDuration: Integer (seconds),
-            transcode: Boolean,
-            recordVideo: Boolean,
-            videoResolution: String,
-            videoFps: Integer,
-            videoCodec: String,
-            videoBitrate: Integer/String,
-            recordAudio: Boolean,
-            audioCodec: String,
-            audioBitrate: String,
-            audioChannels: String,
-            customInputOptions: Array of String,
-            customOutputOptions: Array of String
+            ffmpegOptions:{
+                transcode: Boolean,
+                recordVideo: Boolean,
+                videoResolution: String,
+                videoFps: Integer,
+                videoCodec: String,
+                videoBitrate: Integer/String,
+                recordAudio: Boolean,
+                audioCodec: String,
+                audioBitrate: String,
+                audioChannels: String,
+                customInputOptions: Array of String,
+                customOutputOptions: Array of String
+            }
         }
     */
     addInstance({streamMeta, destination, beginCallback = null, endCallback = null} = {}) {
@@ -68,7 +71,7 @@ const recorder = class {
             newFfmpeg.format(streamMeta.ffmpegOptions.format);
         }
         if (streamMeta.ffmpegOptions.recordVideo){
-            if (streamMeta.ffmpegOptions.transcode){
+            if (streamMeta.ffmpegOptions.transcode){ //Copy the video stream if transcoding is set to false
                 if (streamMeta.ffmpegOptions.videoResolution){
                     newFfmpeg.size(streamMeta.ffmpegOptions.videoResolution);
                 }
@@ -88,7 +91,7 @@ const recorder = class {
             newFfmpeg.noVideo();
         }
         if (streamMeta.ffmpegOptions.recordAudio){
-            if (streamMeta.ffmpegOptions.transcode){
+            if (streamMeta.ffmpegOptions.transcode){ //Copy the audio stream if transcoding is set to false
                 if (streamMeta.ffmpegOptions.audioCodec){
                     newFfmpeg.audioCodec(streamMeta.ffmpegOptions.audioCodec);
                 }
