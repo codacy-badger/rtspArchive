@@ -1,12 +1,13 @@
 `use strict`;
 
+/**
+    Allows to control multiple FFMPEG instances. Each instance can be added by using the recorder.addInstance function with specified parameters. The added instances can be started with the recorder.run function and stopped with the recorder.stop function.
+**/
+
 const ffmpeg = require(`fluent-ffmpeg`);
 const config = require(`../config`);
 const logger = require(`../logger`);
 
-/**
-    Allows to control multiple FFMPEG instances. Each instance can be added by using the recorder.addInstance function with specified parameters. The added instances can be started with the recorder.run function and stopped with the recorder.stop function.
-**/
 const recorder = class {
     constructor() {
         /*
@@ -21,7 +22,9 @@ const recorder = class {
     }
     /*
         Adds a new ffmpeg instance (doesn't start it). The instance name has to be unique
-        options:{
+        endCallback: a function that will be called when ffmpeg finishes recording (e.g. after exceeding options.fileDuration)
+        beginCallback: a function that will be called when ffmpeg starts recording
+        options: {
             name: String,
             source: String,
             destination: String,
@@ -40,7 +43,7 @@ const recorder = class {
             customOutputOptions: Array of String
         }
     */
-    addInstance(options = {}) {
+    addInstance(options = {}, beginCallback, endCallback) {
         //Prevent adding multiple instances with the same name
         const instanceAlreadyExists = this._ffmpegInstances.some((instance) => {
             return instance.name === options.name;
@@ -102,7 +105,7 @@ const recorder = class {
             options,
             ffmpeg: newFfmpeg
         };
-        this._addInstanceEventHandlers(newInstance);
+        this._addInstanceEventHandlers(newInstance, beginCallback, endCallback);
         //Push the newly created instance to the _ffmpegInstances array
         this._ffmpegInstances.push(newInstance);
     }
@@ -147,12 +150,18 @@ const recorder = class {
     /*
         Adds `start`, `end` and `error` event handlers to the given instance (ffmpeg + metadata - as specified in the constructor)
     */
-    _addInstanceEventHandlers(instance) {
+    _addInstanceEventHandlers(instance, beginCallback, endCallback) {
         instance.ffmpeg.on(`end`, () => {
             logger.info(`FFMpeg instance ${instance.name} has finished`, {identifier: `recorder event`, meta: {options: instance.options}});
+            if (typeof endCallback === `function`){
+                endCallback();
+            }
         });
         instance.ffmpeg.on(`start`, (commandLine) => {
             logger.info(`FFMpeg instance ${instance.name} has started`, {identifier: `recorder event`, meta: {options: instance.options, commandLine: commandLine}});
+            if (typeof beginCallback === `function`){
+                beginCallback();
+            }
         });
         instance.ffmpeg.on(`error`, function(err, stdout, stderr) {
             logger.error(`FFMpeg instance ${instance.name} reported an error: ${err}`, {identifier: `recorder event`, meta: {options: instance.options, stdout: stdout, stderr: stderr, error: err}});
