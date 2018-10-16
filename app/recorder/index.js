@@ -30,6 +30,7 @@ const recorder = class {
             destination: String,
             format: String,
             fileDuration: Integer (seconds),
+            transcode: Boolean,
             recordVideo: Boolean,
             videoResolution: String,
             videoFps: Integer,
@@ -65,30 +66,38 @@ const recorder = class {
             newFfmpeg.format(options.format);
         }
         if (options.recordVideo){
-            if (options.videoResolution){
-                newFfmpeg.size(options.videoResolution);
-            }
-            if (options.videoFps){
-                newFfmpeg.fps(options.videoFps);
-            }
-            if (options.videoCodec){
-                newFfmpeg.videoCodec(options.videoCodec);
-            }
-            if (options.videoBitrate){
-                newFfmpeg.videoBitrate(options.videoBitrate);
+            if (options.transcode){
+                if (options.videoResolution){
+                    newFfmpeg.size(options.videoResolution);
+                }
+                if (options.videoFps){
+                    newFfmpeg.fps(options.videoFps);
+                }
+                if (options.videoCodec){
+                    newFfmpeg.videoCodec(options.videoCodec);
+                }
+                if (options.videoBitrate){
+                    newFfmpeg.videoBitrate(options.videoBitrate);
+                }
+            } else {
+                newFfmpeg.videoCodec(`copy`);
             }
         } else {
             newFfmpeg.noVideo();
         }
         if (options.recordAudio){
-            if (options.audioCodec){
-                newFfmpeg.audioCodec(options.audioCodec);
-            }
-            if (options.audioBitrate){
-                newFfmpeg.audioBitrate(options.audioBitrate);
-            }
-            if (options.audioChannels){
-                newFfmpeg.audioChannels(options.audioChannels);
+            if (options.transcode){
+                if (options.audioCodec){
+                    newFfmpeg.audioCodec(options.audioCodec);
+                }
+                if (options.audioBitrate){
+                    newFfmpeg.audioBitrate(options.audioBitrate);
+                }
+                if (options.audioChannels){
+                    newFfmpeg.audioChannels(options.audioChannels);
+                }
+            } else {
+                newFfmpeg.audioCodec(`copy`);
             }
         } else {
             newFfmpeg.noAudio();
