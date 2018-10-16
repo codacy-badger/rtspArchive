@@ -14,7 +14,8 @@ const recorder = class {
             Structure of the _ffmpegInstances array:
             [{
                 name: String,
-                options: Object,
+                destination: String,
+                streamMeta: Object,
                 ffmpeg: fluent-ffmpeg Object
             }]
         */
@@ -22,9 +23,9 @@ const recorder = class {
     }
     /*
         Adds a new ffmpeg instance (doesn't start it). The instance name has to be unique
-        endCallback: a function that will be called when ffmpeg finishes recording (e.g. after exceeding options.fileDuration)
+        endCallback: a function that will be called when ffmpeg finishes recording (e.g. after exceeding streamMeta.fileDuration)
         beginCallback: a function that will be called when ffmpeg starts recording
-        options: {
+        streamMeta: {
             name: String,
             source: String,
             destination: String,
@@ -44,40 +45,41 @@ const recorder = class {
             customOutputOptions: Array of String
         }
     */
-    addInstance(options = {}, beginCallback, endCallback) {
+    addInstance({streamMeta, destination, beginCallback = null, endCallback = null} = {}) {
+        logger.debug(`Adding a new recorder instance: ${streamMeta.name}`, {identifier: `recorder addInstance`, meta: {streamMeta}});
         //Prevent adding multiple instances with the same name
         const instanceAlreadyExists = this._ffmpegInstances.some((instance) => {
-            return instance.name === options.name;
+            return instance.name === streamMeta.name;
         });
         if (instanceAlreadyExists){
-            logger.error(`Failed to add an instance "${options.name}" - it already exists`);
+            logger.error(`Failed to add an instance "${streamMeta.name}" - it already exists`);
             return false;
         }
-        //Create an ffmpeg instance based on the provided options
-        let ffmpegConstructorOptions = {source: options.source, logger};
-        if (options.fileDuration){ //If the file duration is set, define a timeout with additional 30 seconds for buffering
-            ffmpegConstructorOptions = Object.assign(ffmpegConstructorOptions, {timeout: options.fileDuration + 30});
+        //Create an ffmpeg instance based on the provided streamMeta
+        let ffmpegConstructorOptions = {source: streamMeta.source, logger};
+        if (streamMeta.fileDuration){ //If the file duration is set, define a timeout with additional 30 seconds for buffering
+            ffmpegConstructorOptions = Object.assign(ffmpegConstructorOptions, {timeout: streamMeta.fileDuration + 30});
         }
-        const newFfmpeg = ffmpeg(ffmpegConstructorOptions).output(options.destination);
-        if (options.fileDuration){
-            newFfmpeg.duration(options.fileDuration);
+        const newFfmpeg = ffmpeg(ffmpegConstructorOptions).output(destination);
+        if (streamMeta.fileDuration){
+            newFfmpeg.duration(streamMeta.fileDuration);
         }
-        if (options.format){
-            newFfmpeg.format(options.format);
+        if (streamMeta.ffmpegOptions.format){
+            newFfmpeg.format(streamMeta.ffmpegOptions.format);
         }
-        if (options.recordVideo){
-            if (options.transcode){
-                if (options.videoResolution){
-                    newFfmpeg.size(options.videoResolution);
+        if (streamMeta.ffmpegOptions.recordVideo){
+            if (streamMeta.ffmpegOptions.transcode){
+                if (streamMeta.ffmpegOptions.videoResolution){
+                    newFfmpeg.size(streamMeta.ffmpegOptions.videoResolution);
                 }
-                if (options.videoFps){
-                    newFfmpeg.fps(options.videoFps);
+                if (streamMeta.ffmpegOptions.videoFps){
+                    newFfmpeg.fps(streamMeta.ffmpegOptions.videoFps);
                 }
-                if (options.videoCodec){
-                    newFfmpeg.videoCodec(options.videoCodec);
+                if (streamMeta.ffmpegOptions.videoCodec){
+                    newFfmpeg.videoCodec(streamMeta.ffmpegOptions.videoCodec);
                 }
-                if (options.videoBitrate){
-                    newFfmpeg.videoBitrate(options.videoBitrate);
+                if (streamMeta.ffmpegOptions.videoBitrate){
+                    newFfmpeg.videoBitrate(streamMeta.ffmpegOptions.videoBitrate);
                 }
             } else {
                 newFfmpeg.videoCodec(`copy`);
@@ -85,16 +87,16 @@ const recorder = class {
         } else {
             newFfmpeg.noVideo();
         }
-        if (options.recordAudio){
-            if (options.transcode){
-                if (options.audioCodec){
-                    newFfmpeg.audioCodec(options.audioCodec);
+        if (streamMeta.ffmpegOptions.recordAudio){
+            if (streamMeta.ffmpegOptions.transcode){
+                if (streamMeta.ffmpegOptions.audioCodec){
+                    newFfmpeg.audioCodec(streamMeta.ffmpegOptions.audioCodec);
                 }
-                if (options.audioBitrate){
-                    newFfmpeg.audioBitrate(options.audioBitrate);
+                if (streamMeta.ffmpegOptions.audioBitrate){
+                    newFfmpeg.audioBitrate(streamMeta.ffmpegOptions.audioBitrate);
                 }
-                if (options.audioChannels){
-                    newFfmpeg.audioChannels(options.audioChannels);
+                if (streamMeta.ffmpegOptions.audioChannels){
+                    newFfmpeg.audioChannels(streamMeta.ffmpegOptions.audioChannels);
                 }
             } else {
                 newFfmpeg.audioCodec(`copy`);
@@ -102,16 +104,17 @@ const recorder = class {
         } else {
             newFfmpeg.noAudio();
         }
-        if (options.customInputOptions){
-            newFfmpeg.inputOptions = options.customInputOptions;
+        if (streamMeta.ffmpegOptions.customInputOptions){
+            newFfmpeg.inputOptions = streamMeta.ffmpegOptions.customInputOptions;
         }
-        if (options.customOutputOptions){
-            newFfmpeg.outputOptions = options.customOutputOptions;
+        if (streamMeta.ffmpegOptions.customOutputOptions){
+            newFfmpeg.outputOptions = streamMeta.ffmpegOptions.customOutputOptions;
         }
         //Create a new instance (ffmpeg + metadata) and add event handlers
         const newInstance = {
-            name: options.name,
-            options,
+            name: streamMeta.name,
+            destination,
+            streamMeta,
             ffmpeg: newFfmpeg
         };
         this._addInstanceEventHandlers(newInstance, beginCallback, endCallback);
@@ -138,42 +141,27 @@ const recorder = class {
         });
     }
     /*
-        Stops all added ffmpeg instances
-    */
-    stop() {
-        this._ffmpegInstances.forEach((instance) => {
-            instance.ffmpeg.kill();
-        });
-    }
-    /*
-        Stops a single instance with the specified name
-    */
-    stopSingle(name) {
-        this._ffmpegInstances.some((instance) => {
-            if (instance.name === name){
-                instance.ffmpeg.stop();
-                return true;
-            }
-        });
-    }
-    /*
         Adds `start`, `end` and `error` event handlers to the given instance (ffmpeg + metadata - as specified in the constructor)
     */
     _addInstanceEventHandlers(instance, beginCallback, endCallback) {
         instance.ffmpeg.on(`end`, () => {
-            logger.info(`FFMpeg instance ${instance.name} has finished`, {identifier: `recorder event`, meta: {options: instance.options}});
+            logger.info(`FFMpeg instance ${instance.name} has finished`, {identifier: `recorder event`, meta: {streamMeta: instance.streamMeta}});
+            //Remove the instance from _ffmpegInstances array
+            this._ffmpegInstances = this._ffmpegInstances.filter(instanceInner => instanceInner.name !== instance.name);
             if (typeof endCallback === `function`){
-                endCallback();
+                endCallback(instance.streamMeta, instance.destination);
             }
         });
         instance.ffmpeg.on(`start`, (commandLine) => {
-            logger.info(`FFMpeg instance ${instance.name} has started`, {identifier: `recorder event`, meta: {options: instance.options, commandLine: commandLine}});
+            logger.info(`FFMpeg instance ${instance.name} has started: ${commandLine}`, {identifier: `recorder event`, meta: {streamMeta: instance.streamMeta, commandLine: commandLine}});
             if (typeof beginCallback === `function`){
-                beginCallback();
+                beginCallback(instance.streamMeta, instance.destination);
             }
         });
         instance.ffmpeg.on(`error`, function(err, stdout, stderr) {
-            logger.error(`FFMpeg instance ${instance.name} reported an error: ${err}`, {identifier: `recorder event`, meta: {options: instance.options, stdout: stdout, stderr: stderr, error: err}});
+            logger.error(`FFMpeg instance ${instance.name} reported an error: ${err}`, {identifier: `recorder event`, meta: {streamMeta: instance.streamMeta, stdout: stdout, stderr: stderr, error: err}});
+            //Remove the instance from _ffmpegInstances array
+            this._ffmpegInstances = this._ffmpegInstances.filter(instanceInner => instanceInner.name !== instance.name);
         });
     }
 }

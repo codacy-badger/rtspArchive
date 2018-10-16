@@ -3,13 +3,13 @@
 const app = require(`./app`);
 const commandExists = require(`command-exists`);
 
-//Anonymous async function to make things easier with await
-(async () => {
-    //Check if ffmpeg is installed
-    try{
-        await commandExists(`ffmpeg`);
-    } catch(error){
+//Check if ffmpeg is installed
+commandExists(`ffmpeg`, (error) => {
+    if (error){
         app.logger.error(`ffmpeg command not found - you need to install FFMPEG on your system`, {identifier: `rtspArchive`});
-        return false;
+        process.exit(1);
     }
-})();
+    app.run().then(() => {
+        app.logger.info(`rtspRecorder has started`, {identifier: `main`});
+    });
+});

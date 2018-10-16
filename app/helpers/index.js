@@ -9,22 +9,6 @@ const {promisify} = require(`util`);
 
 module.exports = {
     /**
-        Calls the "func" function endlessly in a loop with the given interval.
-        Passes the "args" argument to this function. If defined, calls the callback
-        function and passes a result of the "func" function to it.
-    **/
-    asyncEndlessLoop:(interval, func, args, callback) => {
-        const doRecurse = () => {
-            func(args).then((response) => {
-                if (callback){
-                    callback(response);
-                }
-                setTimeout(doRecurse, interval);
-            });
-        }
-        doRecurse();
-    },
-    /**
         Promisified fs functions
     **/
     fsAsync: {
