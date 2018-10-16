@@ -26,7 +26,7 @@ const fileRotator = class {
         Adds a file to the list of monitored files
     */
     async addFile(path, storageDuration = 0){
-        logger.debug(`Adding a file ${path} with storage duration ${storageDuration}`, {identifier: `fileRotator addFile`, meta: {path, storageDuration}});
+        logger.verbose(`Adding a file ${path} with storage duration ${storageDuration}`, {identifier: `fileRotator addFile`, meta: {path, storageDuration}});
         const fileStats = await this._getFileStats(path);
         if (!fileStats || !fileStats.isFile()){
             logger.error(`${path} is not a file, ignoring it`, {identifier: `fileRotator addFile`, meta: {path, storageDuration}});
@@ -59,7 +59,7 @@ const fileRotator = class {
             const currentTime = moment();
             const timeDifference = moment.duration(currentTime.diff(creationTime)).asSeconds();
             if (timeDifference > file.storageDuration){
-                logger.info(`Removing file ${file.path} because it exceeded its storage duration (${file.storageDuration}s)`, {identifier: `fileRotator rotate`, meta: {file, timeDifference}});
+                logger.verbose(`Removing file ${file.path} because it exceeded its storage duration (${file.storageDuration}s)`, {identifier: `fileRotator rotate`, meta: {file, timeDifference}});
                 await this.removeFile(file.path);
             }
         });

@@ -49,7 +49,7 @@ const recorder = class {
         }
     */
     addInstance({streamMeta, destination, beginCallback = null, endCallback = null} = {}) {
-        logger.debug(`Adding a new recorder instance: ${streamMeta.name}`, {identifier: `recorder addInstance`, meta: {streamMeta}});
+        logger.verbose(`Adding a new recorder instance: ${streamMeta.name}`, {identifier: `recorder addInstance`, meta: {streamMeta}});
         //Prevent adding multiple instances with the same name
         const instanceAlreadyExists = this._ffmpegInstances.some((instance) => {
             return instance.name === streamMeta.name;
@@ -148,7 +148,7 @@ const recorder = class {
     */
     _addInstanceEventHandlers(instance, beginCallback, endCallback) {
         instance.ffmpeg.on(`end`, () => {
-            logger.info(`FFMpeg instance ${instance.name} has finished`, {identifier: `recorder event`, meta: {streamMeta: instance.streamMeta}});
+            logger.debug(`FFMpeg instance ${instance.name} has finished`, {identifier: `recorder event`, meta: {streamMeta: instance.streamMeta}});
             //Remove the instance from _ffmpegInstances array
             this._ffmpegInstances = this._ffmpegInstances.filter(instanceInner => instanceInner.name !== instance.name);
             if (typeof endCallback === `function`){
@@ -156,7 +156,7 @@ const recorder = class {
             }
         });
         instance.ffmpeg.on(`start`, (commandLine) => {
-            logger.info(`FFMpeg instance ${instance.name} has started: ${commandLine}`, {identifier: `recorder event`, meta: {streamMeta: instance.streamMeta, commandLine: commandLine}});
+            logger.debug(`FFMpeg instance ${instance.name} has started: ${commandLine}`, {identifier: `recorder event`, meta: {streamMeta: instance.streamMeta, commandLine: commandLine}});
             if (typeof beginCallback === `function`){
                 beginCallback(instance.streamMeta, instance.destination);
             }
